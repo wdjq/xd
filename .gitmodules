@@ -1,0 +1,9 @@
+[submodule "android/extern/libjpeg-turbo"]
+	path = android/extern/libjpeg-turbo
+	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
+[submodule "android/extern/libvncserver"]
+	path = android/extern/libvncserver
+	url = https://github.com/gujjwal00/libvncserver.git
+[submodule "android/extern/wolfssl"]
+	path = android/extern/wolfssl
+	url = https://github.com/wolfSSL/wolfssl.git
