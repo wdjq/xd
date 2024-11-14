@@ -51,14 +51,22 @@ jobs:
         chmod +x cmake-3.22.1-linux-x86_64.sh
         sudo ./cmake-3.22.1-linux-x86_64.sh --skip-license --prefix=/usr/local
 
-    - name: Print and Modify flutter.groovy
+    - name: Determine Flutter SDK path
+      id: flutter-sdk-path
+      run: |
+        echo "Flutter SDK path is: $flutter"
+        echo "::set-output name=path::$flutter"
+
+    - name: Print flutter.groovy content
       run: |
         # 打印flutter.groovy文件的完整代码
-        echo "Printing flutter.groovy content:"
-        cat $flutter-sdk/bin/internal/gradle/flutter.gradle
+        echo "Content of flutter.groovy:"
+        cat ${{ steps.flutter-sdk-path.outputs.path }}/bin/internal/gradle/flutter.groovy
 
+    - name: Remove ShrinkResources related if block
+      run: |
         # 删除与ShrinkResources相关的if代码块
-        sed -i '/ShrinkResources/d' $flutter-sdk/bin/internal/gradle/flutter.gradle
+        sed -i '/ShrinkResources/d' ${{ steps.flutter-sdk-path.outputs.path }}/bin/internal/gradle/flutter.groovy
 
     - name: Build APK
       run: |
