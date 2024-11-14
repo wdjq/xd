@@ -1,0 +1,77 @@
+name: Build a1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-modify-flutter:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 bison patch gcc libx11-dev
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '18'
+        distribution: 'temurin'
+        check-latest: false
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+        overwrite-settings: true
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 28
+
+    - name: Clone Flutter
+      run: |
+        git clone https://github.com/flutter/flutter.git --depth 1
+        cd flutter
+        git checkout tags/v3.24.0  # 切换到指定版本的Flutter
+
+    - name: Print flutter.groovy content
+      run: |
+        # 打印flutter.groovy文件的完整代码
+        cat flutter/packages/flutter_tools/gradle/src/main/groovy/flutter.groovy
+
+    - name: Remove ShrinkResources related if block
+      run: |
+        # 删除与ShrinkResources相关的if代码块
+        sed -i '/ShrinkResources/d' flutter/packages/flutter_tools/gradle/src/main/groovy/flutter.groovy
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version: '3.24.0'
+
+    - name: Install CMake 3.22.1
+      run: |
+        sudo apt-get install -y cmake
+        wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh
+        chmod +x cmake-3.22.1-linux-x86_64.sh
+        sudo ./cmake-3.22.1-linux-x86_64.sh --skip-license --prefix=/usr/local
+
+    - name: Build APK
+      run: |
+        flutter clean
+        flutter build apk --target-platform android-arm64 --split-per-abi --obfuscate --split-debug-info=tiny_computer/sdi
+
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: tiny-computer-apk
+        path: build/app/outputs/flutter-apk/app-arm64-release.apk
