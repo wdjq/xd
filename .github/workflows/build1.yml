@@ -1,0 +1,84 @@
+name: Build Tiny Computer 1
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'  # 确保子模块也被检出
+
+    - name: Initialize git submodules
+      run: |
+        echo "Starting submodule initialization..."
+        git submodule sync --recursive
+        git submodule update --init --recursive --force
+        if [[ ! -d "android/extern/libjpeg-turbo" ]]; then
+          echo "libjpeg-turbo submodule not found. Attempting manual clone..."
+          git clone https://github.com/libjpeg-turbo/libjpeg-turbo.git android/extern/libjpeg-turbo
+          if [ $? -eq 0 ]; then
+            echo "Manual clone of libjpeg-turbo submodule successful."
+          else
+            echo "Manual clone failed. Please check your network connection and Git configuration."
+            exit 1
+          fi
+        else
+          echo "libjpeg-turbo submodule already initialized."
+        fi
+        echo "Submodule initialization completed."
+      shell: /usr/bin/bash -e {0}
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '18'
+        distribution: 'temurin'
+        check-latest: false
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+        overwrite-settings: true
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version: '3.24.0'
+
+    - name: Install dependencies
+      run: |
+        flutter pub get
+        # 确保所有依赖项都已安装，包括子模块
+
+    - name: Prepare build environment
+      run: |
+        wget --tries=3 https://github.com/Cateners/tiny_computer/releases/download/v1.0.18/debian-xfce.tar.xz || (echo "Failed to download debian-xfce.tar.xz" && exit 1)
+        mkdir -p assets
+        split -b 98M debian-xfce.tar.xz assets/debian.tar.xz.
+      if: always()  # 确保即使前一个步骤失败，这个步骤也会执行
+
+    - name: Check build.gradle files
+      run: |
+        echo "build.gradle:"
+        cat android/build.gradle
+        echo "app/build.gradle:"
+        cat android/app/build.gradle
+
+    - name: Build APK  # 构建 APK
+      run: |
+        flutter clean
+        flutter build apk --target-platform android-arm64 --split-per-abi --obfuscate --split-debug-info=tiny_computer/sdi
+
+    - name: Upload APK as artifact  # 上传 APK 作为构建产物
+      uses: actions/upload-artifact@v3
+      with:
+        name: tiny-computer-apk
+        path: build/app/outputs/flutter-apk/app-arm64-release.apk  # 假设 APK 输出路径

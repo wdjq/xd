@@ -1,0 +1,54 @@
+name: Build Flutter 123
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 环境
+
+    steps:
+    - name: Checkout repository  # 检出代码
+      uses: actions/checkout@v3
+
+    - name: Set up Python  # 设置 Python 环境
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'  # 使用 Python 3.x 版本
+
+    - name: Install dependencies  # 安装依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 bison patch gcc  # 安装 python3, bison, patch, gcc
+
+    - name: Set up Android SDK  # 设置 Android SDK 环境
+      run: |
+        wget https://dl.google.com/android/repository/commandlinetools-linux-6609375_latest.zip
+        sudo unzip commandlinetools-linux-6609375_latest.zip -d $HOME/android-sdk
+        # 设置环境变量
+        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        sdkmanager --install "platform-tools" "build-tools;30.0.3" "platforms;android-30"
+        echo "y" | sdkmanager --licenses
+
+    - name: Set up Flutter  # 设置 Flutter 环境
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable  # 使用稳定版通道
+        flutter-version: '3.19.0'  # 指定 Flutter 版本，您可以根据需要更改版本号
+
+
+    - name: Prepare build environment
+      run: |
+        wget --tries=3 https://github.com/Cateners/tiny_computer/releases/download/v1.0.18/debian-xfce.tar.xz
+        mkdir -p assets
+        split -b 98M debian-xfce.tar.xz assets/debian.tar.xz.
+    - name: Build APK  # 构建 APK
+      run: |
+        flutter build apk --target-platform android-arm64 --split-per-abi --obfuscate --split-debug-info=tiny_computer/sdi
+
+    - name: Upload APK as artifact  # 上传 APK 作为构建产物
+      uses: actions/upload-artifact@v3
+      with:
+        name: tiny-computer-apk
+        path: build/app/outputs/flutter-apk/app-arm64-release.apk  # 假设 APK 输出路径

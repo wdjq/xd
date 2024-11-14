@@ -1,0 +1,144 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <uses-feature android:name="android.hardware.vr.headtracking" android:required="false" />
+    <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="false" />
+    <uses-feature android:name="oculus.software.handtracking" android:required="false" />
+    <uses-feature android:name="oculus.software.overlay_keyboard" android:required="false" />
+
+    <application
+        android:label="小小电脑"
+        android:name=".MainApplication"
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:launchMode="singleInstance"
+        android:theme="@style/App.Theme">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="navigation|orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <activity android:name="com.example.tiny_computer.Signal9Activity" />
+        <activity-alias
+            android:name="com.gaurav.avnc.UriReceiverActivity"
+            android:targetActivity="com.gaurav.avnc.ui.vnc.IntentReceiverActivity">
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="vnc" />
+            </intent-filter>
+        </activity-alias>
+        <activity
+            android:name="com.gaurav.avnc.ui.vnc.VncActivity"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+            android:resizeableActivity="true"
+            android:supportsPictureInPicture="true"
+            tools:ignore="UnusedAttribute" />
+
+        <activity
+            android:name="com.gaurav.avnc.ui.vnc.IntentReceiverActivity"
+            android:theme="@style/App.SplashTheme.Dark" />
+
+        <activity android:name="com.gaurav.avnc.ui.prefs.PrefsActivity" />
+        <activity android:name="com.gaurav.avnc.ui.about.AboutActivity" />
+        <activity
+            android:name="com.termux.x11.MainActivity"
+            android:supportsPictureInPicture="true"
+            android:configChanges="fontScale|orientation|screenSize|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|screenLayout|touchscreen|uiMode|smallestScreenSize|density"
+            android:resizeableActivity="true"
+            android:windowSoftInputMode="stateHidden"
+            android:process=":x11">
+            <!-- android:taskAffinity="com.termux.x11.MainActivity" -->
+            <!-- android:launchMode="singleInstance" -->
+        </activity>
+        <activity
+            android:name="com.termux.x11.XrActivity"
+            android:configChanges="density|orientation|screenSize|keyboard|keyboardHidden|uiMode"
+            android:exported="true"
+            android:resizeableActivity="false"
+            android:screenOrientation="landscape"
+            android:process=":vr_process">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="com.oculus.intent.category.VR" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- android:launchMode="singleTask" -->
+        </activity>
+        <activity
+            android:theme="@style/Theme.AppCompat.DayNight"
+            android:name="com.termux.x11.LoriePreferences"
+            android:supportsPictureInPicture="false"
+            android:resizeableActivity="true"
+            android:process=":x11">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+            <!-- android:excludeFromRecents="true" -->
+            <!-- android:taskAffinity="com.termux.x11.LoriePreferences" -->
+        </activity>
+	    <meta-data android:name="com.samsung.android.multidisplay.keep_process_alive" android:value="false"/>
+	    <meta-data android:name="android.allow_multiple_resumed_activities" android:value="true" />
+
+        <service android:name="com.termux.x11.utils.KeyInterceptor"
+            android:exported="true"
+            android:label="Termux:X11 KeyInterceptor"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:process=":x11">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <provider
+            android:name="com.example.tiny_computer.filepicker.TinyDocumentsProvider"
+            android:authorities="com.example.tiny_computer.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+</manifest>

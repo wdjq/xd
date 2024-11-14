@@ -1,0 +1,75 @@
+name: Build 8
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-submodules:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'  # 确保子模块也被检出
+
+    - name: Set up Python  # 设置 Python 环境
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.8'  # 使用 Python 3.x 版本
+
+    - name: Install dependencies  # 安装依赖
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3 bison patch gcc libx11-dev  # 安装 python3, bison, patch, gcc 和 Xorg 库
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '18'
+        distribution: 'temurin'
+        check-latest: false
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+        overwrite-settings: true
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        api-level: 28  # 指定 Android SDK 版本 28
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version: '3.24.0'
+
+    - name: Install dependencies
+      run: |
+        flutter pub get
+        # 确保所有依赖项都已安装，包括子模块
+
+    - name: Install CMake 3.22.1
+      run: |
+        sudo apt-get install -y cmake
+        # 下载并安装指定版本的CMake
+        wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh
+        chmod +x cmake-3.22.1-linux-x86_64.sh
+        sudo ./cmake-3.22.1-linux-x86_64.sh --skip-license --prefix=/usr/local
+
+    - name: Prepare build environment
+      run: |
+        wget --tries=3 https://github.com/Cateners/tiny_computer/releases/download/v1.0.18/debian-xfce.tar.xz || (echo "Failed to download debian-xfce.tar.xz" && exit 1)
+        mkdir -p assets
+        split -b 98M debian-xfce.tar.xz assets/debian.tar.xz.
+
+    - name: Build APK  # 构建 APK
+      run: |
+        flutter clean
+        flutter build apk --target-platform android-arm64 --split-per-abi --obfuscate --split-debug-info=tiny_computer/sdi
+
+    - name: Upload APK as artifact  # 上传 APK 作为构建产物
+      uses: actions/upload-artifact@v3
+      with:
+        name: tiny-computer-apk
+        path: build/app/outputs/flutter-apk/app-arm64-release.apk  # 假设 APK 输出路径

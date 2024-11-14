@@ -1,0 +1,90 @@
+name: Build Tiny Computer APK
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: 'recursive'
+
+    - name: Initialize git submodules
+      run: |
+        echo "Starting submodule initialization..."
+        git submodule sync --recursive
+        git submodule update --init --recursive --force
+        if [! -d "android/extern/libjpeg-turbo" ]; then
+          echo "libjpeg-turbo submodule not found. Attempting manual clone..."
+          if! git clone https://github.com/libjpeg-turbo/libjpeg-turbo.git android/extern/libjpeg-turbo; then
+            echo "Manual clone failed. Please check your network connection and Git configuration."
+            exit 1
+          else
+            echo "Manual clone of libjpeg-turbo submodule successful."
+          fi
+        else
+          echo "libjpeg-turbo submodule already initialized."
+        fi
+        echo "Submodule initialization completed."
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '${{ env.JAVA_VERSION }}'
+        distribution: 'temurin'
+        check-latest: false
+        server-id: github
+        server-username: GITHUB_ACTOR
+        server-password: GITHUB_TOKEN
+        overwrite-settings: true
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        flutter-version: '${{ env.FLUTTER_VERSION }}'
+
+    - name: Install dependencies
+      run: |
+        flutter pub get
+        if [ $? -ne 0 ]; then
+          echo "Dependency installation failed. Exiting..."
+          exit 1
+        fi
+
+    - name: Prepare build environment
+      run: |
+        attempts=0
+        max_attempts=3
+        until wget --tries=3 https://github.com/Cateners/tiny_computer/releases/download/v1.0.18/debian-xfce.tar.xz; do
+          if [ $attempts -eq $max_attempts ]; then
+            echo "Failed to download debian-xfce.tar.xz after $max_attempts attempts. Exiting..."
+            exit 1
+          fi
+          attempts=$((attempts + 1))
+          echo "Download attempt $attempts failed. Retrying..."
+        done
+        mkdir -p assets
+        split -b 98M debian-xfce.tar.xz assets/debian.tar.xz.
+
+    - name: Build APK
+      run: |
+        flutter build apk --target-platform android-arm64 --split-per-abi --obfuscate --split-debug-info=tiny_computer/sdi
+        if [ $? -ne 0 ]; then
+          echo "APK build failed. Exiting..."
+          exit 1
+        fi
+
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: tiny-computer-apk
+        path: build/app/outputs/flutter-apk/app-arm64-release.apk
