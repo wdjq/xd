@@ -1,4 +1,4 @@
-name: Build a1
+name: Build a11
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ jobs:
       id: find-flutter-groovy
       run: |
         # 查找flutter.groovy文件
-        flutter_groovy_path=$(find $flutter -name flutter.groovy)
+        flutter_groovy_path=$(find $FLUTTER_ROOT -name flutter.groovy)
         echo "Found flutter.groovy at path: $flutter_groovy_path"
         echo "::set-output name=path::$flutter_groovy_path"
 
@@ -29,7 +29,15 @@ jobs:
     - name: Remove ShrinkResources related if block
       run: |
         # 删除与ShrinkResources相关的if代码块
-        sed -i '/ShrinkResources/d' ${{ steps.find-flutter-groovy.outputs.path }}
+        if [ -f "${{ steps.find-flutter-groovy.outputs.path }}" ]; then
+          sed -i '/ShrinkResources/d' ${{ steps.find-flutter-groovy.outputs.path }}
+        else
+          echo "flutter.groovy file not found."
+          exit 1
+        fi
+
+    # ... 其他构建步骤 ...
+
 
 
     - name: Build APK
