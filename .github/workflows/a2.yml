@@ -35,11 +35,15 @@ jobs:
           echo "flutter.groovy file not found."
           exit 1
         fi
+    - name: Print modified flutter.groovy content
+      run: |
+        # 打印修改后的flutter.groovy文件的完整代码
+        cat ${{ steps.find-flutter-groovy.outputs.path }}
 
     - name: Checkout repository
       uses: actions/checkout@v2
       with:
-        submodules: 'recursive'  # 确保子模块也被检出
+        submodules: 'recursive'  # 确保子模块也被检const/4 v0, 0x1const/4 v0, 0x1出
 
     - name: Set up Python  # 设置 Python 环境
       uses: actions/setup-python@v3
